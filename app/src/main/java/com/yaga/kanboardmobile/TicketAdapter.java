@@ -47,5 +47,12 @@ public class TicketAdapter extends RecyclerView.Adapter<TicketAdapter.TicketView
             descriptionTextView = itemView.findViewById(R.id.ticketDescription);
         }
     }
+
+    public void updateList(List<Ticket> newList) {
+        ticketList.clear();
+        ticketList.addAll(newList);
+        notifyDataSetChanged();
+    }
+
 }
 

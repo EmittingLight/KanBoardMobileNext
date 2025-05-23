@@ -15,6 +15,10 @@ import androidx.recyclerview.widget.RecyclerView;
 
 import java.util.ArrayList;
 import java.util.List;
+import android.view.View;
+import android.widget.Spinner;
+import android.widget.ArrayAdapter;
+import android.widget.AdapterView;
 
 public class MainActivity extends AppCompatActivity {
 
@@ -54,6 +58,27 @@ public class MainActivity extends AppCompatActivity {
 
         adapter = new TicketAdapter(ticketList);
         recyclerView.setAdapter(adapter);
+
+        Spinner spinner = findViewById(R.id.spinnerStatusFilter);
+        ArrayAdapter<String> spinnerAdapter = new ArrayAdapter<>(this,
+                android.R.layout.simple_spinner_item,
+                new String[]{"Все", "К выполнению", "В процессе", "Готово"});
+        spinnerAdapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
+        spinner.setAdapter(spinnerAdapter);
+
+        spinner.setOnItemSelectedListener(new AdapterView.OnItemSelectedListener() {
+            @Override
+            public void onItemSelected(AdapterView<?> parent, View view, int position, long id) {
+                String selectedStatus = (String) parent.getItemAtPosition(position);
+                filterTickets(selectedStatus);
+            }
+
+            @Override
+            public void onNothingSelected(AdapterView<?> parent) {
+                filterTickets("Все");
+            }
+        });
+
     }
 
     @Override
@@ -70,5 +95,23 @@ public class MainActivity extends AppCompatActivity {
             return true;
         }
         return super.onOptionsItemSelected(item);
+    }
+
+    private void filterTickets(String status) {
+        List<Ticket> filtered = new ArrayList<>();
+        if (status.equals("Все")) {
+            filtered.addAll(ticketList);
+        } else {
+            for (Ticket ticket : ticketList) {
+                if (status.equals("К выполнению") && ticket.getStatus().equals("To Do")) {
+                    filtered.add(ticket);
+                } else if (status.equals("В процессе") && ticket.getStatus().equals("In Progress")) {
+                    filtered.add(ticket);
+                } else if (status.equals("Готово") && ticket.getStatus().equals("Done")) {
+                    filtered.add(ticket);
+                }
+            }
+        }
+        adapter.updateList(filtered);
     }
 }
