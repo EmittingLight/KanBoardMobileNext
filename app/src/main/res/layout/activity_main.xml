@@ -9,5 +9,20 @@
     tools:context=".MainActivity">
 
     <!-- Здесь позже появится наш красивый интерфейс -->
+    <com.google.android.material.appbar.MaterialToolbar
+        android:id="@+id/topAppBar"
+        android:layout_width="0dp"
+        android:layout_height="wrap_content"
+        android:background="?attr/colorPrimary"
+        android:theme="@style/ThemeOverlay.MaterialComponents.Dark.ActionBar"
+        app:title="KanBoardMobile"
+        app:titleCentered="true"
+        app:layout_constraintTop_toTopOf="parent"
+        app:layout_constraintStart_toStartOf="parent"
+        app:layout_constraintEnd_toEndOf="parent"
+        android:paddingTop="50dp"
+        android:paddingBottom="8dp"
+        android:elevation="4dp"/>
+
 
 </androidx.constraintlayout.widget.ConstraintLayout>
