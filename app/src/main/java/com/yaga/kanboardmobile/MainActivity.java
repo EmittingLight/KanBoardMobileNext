@@ -1,6 +1,10 @@
 package com.yaga.kanboardmobile;
 
 import android.os.Bundle;
+import android.view.Menu;
+import android.view.MenuItem;
+import android.widget.Toast;
+
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.appcompat.widget.Toolbar;
 import androidx.recyclerview.widget.LinearLayoutManager;
@@ -35,5 +39,23 @@ public class MainActivity extends AppCompatActivity {
         adapter = new TicketAdapter(ticketList);
         recyclerView.setAdapter(adapter);
     }
+
+    // ✅ Подключаем меню в Toolbar
+    @Override
+    public boolean onCreateOptionsMenu(Menu menu) {
+        getMenuInflater().inflate(R.menu.top_app_bar_menu, menu);
+        return true;
+    }
+
+    // ✅ Обрабатываем нажатие на "+"
+    @Override
+    public boolean onOptionsItemSelected(MenuItem item) {
+        if (item.getItemId() == R.id.action_add) {
+            Toast.makeText(this, "Добавить задачу", Toast.LENGTH_SHORT).show();
+            return true;
+        }
+        return super.onOptionsItemSelected(item);
+    }
 }
+
 
