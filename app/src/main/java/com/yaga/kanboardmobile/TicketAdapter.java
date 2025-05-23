@@ -53,6 +53,5 @@ public class TicketAdapter extends RecyclerView.Adapter<TicketAdapter.TicketView
         ticketList.addAll(newList);
         notifyDataSetChanged();
     }
-
 }
 

@@ -2,9 +2,9 @@ package com.yaga.kanboardmobile;
 
 import android.content.Intent;
 import android.os.Bundle;
+import android.util.Log;
 import android.view.Menu;
 import android.view.MenuItem;
-import android.widget.Toast;
 
 import androidx.activity.result.ActivityResultLauncher;
 import androidx.activity.result.contract.ActivityResultContracts;
@@ -22,9 +22,11 @@ import android.widget.AdapterView;
 
 public class MainActivity extends AppCompatActivity {
 
+    private static final String TAG = "KanBoardLog";
+
     private RecyclerView recyclerView;
     private TicketAdapter adapter;
-    private List<Ticket> ticketList;
+    private TicketDatabaseHelper dbHelper;
 
     private final ActivityResultLauncher<Intent> addTicketLauncher =
             registerForActivityResult(new ActivityResultContracts.StartActivityForResult(), result -> {
@@ -33,9 +35,16 @@ public class MainActivity extends AppCompatActivity {
                     if (data != null) {
                         String title = data.getStringExtra("title");
                         String description = data.getStringExtra("description");
-                        Ticket newTicket = new Ticket(title, description, "To Do");
-                        ticketList.add(newTicket);
-                        adapter.notifyItemInserted(ticketList.size() - 1);
+
+                        Log.d(TAG, "Получена задача от активности: " + title);
+                        dbHelper.insertTicket(title, description, "К выполнению");
+
+                        // Обновляем список
+                        adapter.updateList(dbHelper.getAllTickets());
+
+                        // Сбрасываем фильтр
+                        Spinner spinner = findViewById(R.id.spinnerStatusFilter);
+                        spinner.setSelection(0);
                     }
                 }
             });
@@ -45,18 +54,17 @@ public class MainActivity extends AppCompatActivity {
         super.onCreate(savedInstanceState);
         setContentView(R.layout.activity_main);
 
+        dbHelper = new TicketDatabaseHelper(this);
+        dbHelper.getWritableDatabase();
+        Log.d(TAG, "База данных открыта или создана");
+
         Toolbar toolbar = findViewById(R.id.topAppBar);
         setSupportActionBar(toolbar);
 
         recyclerView = findViewById(R.id.recyclerViewTickets);
         recyclerView.setLayoutManager(new LinearLayoutManager(this));
 
-        ticketList = new ArrayList<>();
-        ticketList.add(new Ticket("Сделать дизайн", "Создать макет доски", "To Do"));
-        ticketList.add(new Ticket("Написать код", "Сделать адаптер и RecyclerView", "In Progress"));
-        ticketList.add(new Ticket("Протестировать", "Запустить и проверить", "Done"));
-
-        adapter = new TicketAdapter(ticketList);
+        adapter = new TicketAdapter(new ArrayList<>());
         recyclerView.setAdapter(adapter);
 
         Spinner spinner = findViewById(R.id.spinnerStatusFilter);
@@ -79,6 +87,8 @@ public class MainActivity extends AppCompatActivity {
             }
         });
 
+        // Загружаем изначально
+        filterTickets("Все");
     }
 
     @Override
@@ -98,20 +108,16 @@ public class MainActivity extends AppCompatActivity {
     }
 
     private void filterTickets(String status) {
+        List<Ticket> allTickets = dbHelper.getAllTickets();
         List<Ticket> filtered = new ArrayList<>();
-        if (status.equals("Все")) {
-            filtered.addAll(ticketList);
-        } else {
-            for (Ticket ticket : ticketList) {
-                if (status.equals("К выполнению") && ticket.getStatus().equals("To Do")) {
-                    filtered.add(ticket);
-                } else if (status.equals("В процессе") && ticket.getStatus().equals("In Progress")) {
-                    filtered.add(ticket);
-                } else if (status.equals("Готово") && ticket.getStatus().equals("Done")) {
-                    filtered.add(ticket);
-                }
+
+        for (Ticket ticket : allTickets) {
+            if (status.equals("Все") || ticket.getStatus().equals(status)) {
+                filtered.add(ticket);
             }
         }
+
+        Log.d(TAG, "Фильтрация: " + status + " | Результат: " + filtered.size());
         adapter.updateList(filtered);
     }
 }
