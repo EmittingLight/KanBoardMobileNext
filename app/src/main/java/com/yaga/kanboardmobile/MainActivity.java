@@ -1,16 +1,17 @@
 package com.yaga.kanboardmobile;
 
+import android.content.Intent;
 import android.os.Bundle;
 import android.view.Menu;
 import android.view.MenuItem;
 import android.widget.Toast;
 
+import androidx.activity.result.ActivityResultLauncher;
+import androidx.activity.result.contract.ActivityResultContracts;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.appcompat.widget.Toolbar;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
-import android.content.Intent;
-
 
 import java.util.ArrayList;
 import java.util.List;
@@ -20,6 +21,20 @@ public class MainActivity extends AppCompatActivity {
     private RecyclerView recyclerView;
     private TicketAdapter adapter;
     private List<Ticket> ticketList;
+
+    private final ActivityResultLauncher<Intent> addTicketLauncher =
+            registerForActivityResult(new ActivityResultContracts.StartActivityForResult(), result -> {
+                if (result.getResultCode() == RESULT_OK) {
+                    Intent data = result.getData();
+                    if (data != null) {
+                        String title = data.getStringExtra("title");
+                        String description = data.getStringExtra("description");
+                        Ticket newTicket = new Ticket(title, description, "To Do");
+                        ticketList.add(newTicket);
+                        adapter.notifyItemInserted(ticketList.size() - 1);
+                    }
+                }
+            });
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
@@ -32,7 +47,6 @@ public class MainActivity extends AppCompatActivity {
         recyclerView = findViewById(R.id.recyclerViewTickets);
         recyclerView.setLayoutManager(new LinearLayoutManager(this));
 
-        // Временные тестовые данные
         ticketList = new ArrayList<>();
         ticketList.add(new Ticket("Сделать дизайн", "Создать макет доски", "To Do"));
         ticketList.add(new Ticket("Написать код", "Сделать адаптер и RecyclerView", "In Progress"));
@@ -42,24 +56,19 @@ public class MainActivity extends AppCompatActivity {
         recyclerView.setAdapter(adapter);
     }
 
-    // ✅ Подключаем меню в Toolbar
     @Override
     public boolean onCreateOptionsMenu(Menu menu) {
         getMenuInflater().inflate(R.menu.top_app_bar_menu, menu);
         return true;
     }
 
-    // ✅ Обрабатываем нажатие на "+"
     @Override
     public boolean onOptionsItemSelected(MenuItem item) {
         if (item.getItemId() == R.id.action_add) {
             Intent intent = new Intent(this, AddTicketActivity.class);
-            startActivity(intent);
+            addTicketLauncher.launch(intent);
             return true;
         }
         return super.onOptionsItemSelected(item);
     }
-
 }
-
-
