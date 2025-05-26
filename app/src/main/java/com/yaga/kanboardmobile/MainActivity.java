@@ -9,6 +9,7 @@ import android.view.View;
 import android.widget.AdapterView;
 import android.widget.ArrayAdapter;
 import android.widget.Spinner;
+import android.widget.TextView;
 
 import androidx.activity.result.ActivityResultLauncher;
 import androidx.activity.result.contract.ActivityResultContracts;
@@ -41,6 +42,7 @@ public class MainActivity extends AppCompatActivity {
                         dbHelper.insertTicket(title, description, status);
 
                         adapter.updateList(dbHelper.getAllTickets());
+                        updateStats();
 
                         Spinner spinner = findViewById(R.id.spinnerStatusFilter);
                         spinner.setSelection(0);
@@ -63,8 +65,9 @@ public class MainActivity extends AppCompatActivity {
                         ticket.setDescription(newDescription);
                         ticket.setStatus(newStatus);
 
-                        dbHelper.updateTicket(ticket); // 💾 если ты реализуешь это
+                        dbHelper.updateTicket(ticket);
                         adapter.notifyItemChanged(position);
+                        updateStats();
                     }
                 }
             });
@@ -85,7 +88,6 @@ public class MainActivity extends AppCompatActivity {
         recyclerView.setLayoutManager(new LinearLayoutManager(this));
 
         adapter = new TicketAdapter(new ArrayList<>(), dbHelper);
-
         adapter.setOnItemClickListener(position -> {
             Ticket ticket = adapter.getItem(position);
             Intent intent = new Intent(MainActivity.this, AddTicketActivity.class);
@@ -96,6 +98,7 @@ public class MainActivity extends AppCompatActivity {
             intent.putExtra("position", position);
             editTicketLauncher.launch(intent);
         });
+
         recyclerView.setAdapter(adapter);
 
         Spinner spinner = findViewById(R.id.spinnerStatusFilter);
@@ -119,6 +122,7 @@ public class MainActivity extends AppCompatActivity {
         });
 
         filterTickets("Все");
+        updateStats();
     }
 
     @Override
@@ -149,5 +153,29 @@ public class MainActivity extends AppCompatActivity {
 
         Log.d(TAG, "Фильтрация: " + status + " | Результат: " + filtered.size());
         adapter.updateList(filtered);
+        updateStats();
+    }
+
+    private void updateStats() {
+        List<Ticket> all = dbHelper.getAllTickets();
+        int total = all.size();
+        int todo = 0, inProgress = 0, done = 0;
+
+        for (Ticket t : all) {
+            switch (t.getStatus()) {
+                case "К выполнению":
+                    todo++; break;
+                case "В процессе":
+                    inProgress++; break;
+                case "Готово":
+                    done++; break;
+            }
+        }
+
+        TextView statsText = findViewById(R.id.textStats);
+        statsText.setText("Всего: " + total +
+                " | К выполнению: " + todo +
+                " | В процессе: " + inProgress +
+                " | Готово: " + done);
     }
 }
