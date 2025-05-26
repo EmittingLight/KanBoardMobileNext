@@ -25,12 +25,24 @@ public class AddTicketActivity extends AppCompatActivity {
 
         setContentView(R.layout.activity_add_ticket);
 
-        MaterialToolbar toolbar = findViewById(R.id.toolbar_add);
-        toolbar.setNavigationOnClickListener(v -> finish());
-
+        // 💡 Сначала инициализируем элементы
         EditText editTextTitle = findViewById(R.id.editTextTitle);
         EditText editTextDescription = findViewById(R.id.editTextDescription);
         Button buttonSave = findViewById(R.id.buttonSave);
+        MaterialToolbar toolbar = findViewById(R.id.toolbar_add);
+
+        // 🔁 Только потом используем
+        Intent intent = getIntent();
+        boolean isEdit = intent.getBooleanExtra("isEdit", false);
+
+        if (isEdit) {
+            String title = intent.getStringExtra("title");
+            String description = intent.getStringExtra("description");
+            editTextTitle.setText(title);
+            editTextDescription.setText(description);
+        }
+
+        toolbar.setNavigationOnClickListener(v -> finish());
 
         buttonSave.setOnClickListener(v -> {
             String title = editTextTitle.getText().toString().trim();
@@ -40,6 +52,11 @@ public class AddTicketActivity extends AppCompatActivity {
                 Intent resultIntent = new Intent();
                 resultIntent.putExtra("title", title);
                 resultIntent.putExtra("description", description);
+
+                if (getIntent().getBooleanExtra("isEdit", false)) {
+                    resultIntent.putExtra("position", getIntent().getIntExtra("position", -1));
+                }
+
                 setResult(RESULT_OK, resultIntent);
                 finish();
             } else {

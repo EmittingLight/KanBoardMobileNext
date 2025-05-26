@@ -65,6 +65,16 @@ public class MainActivity extends AppCompatActivity {
         recyclerView.setLayoutManager(new LinearLayoutManager(this));
 
         adapter = new TicketAdapter(new ArrayList<>());
+        adapter.setOnItemClickListener(position -> {
+            Ticket ticket = adapter.getItem(position);
+            Intent intent = new Intent(MainActivity.this, AddTicketActivity.class);
+            intent.putExtra("isEdit", true);
+            intent.putExtra("title", ticket.getTitle());
+            intent.putExtra("description", ticket.getDescription());
+            intent.putExtra("position", position);
+            editTicketLauncher.launch(intent);
+        });
+
         recyclerView.setAdapter(adapter);
 
         Spinner spinner = findViewById(R.id.spinnerStatusFilter);
@@ -120,4 +130,21 @@ public class MainActivity extends AppCompatActivity {
         Log.d(TAG, "Фильтрация: " + status + " | Результат: " + filtered.size());
         adapter.updateList(filtered);
     }
+
+    private final ActivityResultLauncher<Intent> editTicketLauncher =
+            registerForActivityResult(new ActivityResultContracts.StartActivityForResult(), result -> {
+                if (result.getResultCode() == RESULT_OK && result.getData() != null) {
+                    Intent data = result.getData();
+                    String newTitle = data.getStringExtra("title");
+                    String newDescription = data.getStringExtra("description");
+                    int position = data.getIntExtra("position", -1);
+
+                    if (position != -1) {
+                        Ticket ticket = adapter.getItem(position);
+                        ticket.setTitle(newTitle);
+                        ticket.setDescription(newDescription);
+                        adapter.notifyItemChanged(position);
+                    }
+                }
+            });
 }

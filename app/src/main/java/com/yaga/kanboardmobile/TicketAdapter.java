@@ -13,9 +13,18 @@ import java.util.List;
 public class TicketAdapter extends RecyclerView.Adapter<TicketAdapter.TicketViewHolder> {
 
     private List<Ticket> ticketList;
+    private OnItemClickListener listener;
+
+    public interface OnItemClickListener {
+        void onItemClick(int position);
+    }
 
     public TicketAdapter(List<Ticket> ticketList) {
         this.ticketList = ticketList;
+    }
+
+    public void setOnItemClickListener(OnItemClickListener listener) {
+        this.listener = listener;
     }
 
     @NonNull
@@ -38,13 +47,22 @@ public class TicketAdapter extends RecyclerView.Adapter<TicketAdapter.TicketView
         return ticketList.size();
     }
 
-    public static class TicketViewHolder extends RecyclerView.ViewHolder {
+    public class TicketViewHolder extends RecyclerView.ViewHolder {
         TextView titleTextView, descriptionTextView;
 
         public TicketViewHolder(@NonNull View itemView) {
             super(itemView);
             titleTextView = itemView.findViewById(R.id.ticketTitle);
             descriptionTextView = itemView.findViewById(R.id.ticketDescription);
+
+            itemView.setOnClickListener(v -> {
+                if (listener != null) {
+                    int position = getAdapterPosition();
+                    if (position != RecyclerView.NO_POSITION) {
+                        listener.onItemClick(position);
+                    }
+                }
+            });
         }
     }
 
@@ -53,5 +71,8 @@ public class TicketAdapter extends RecyclerView.Adapter<TicketAdapter.TicketView
         ticketList.addAll(newList);
         notifyDataSetChanged();
     }
-}
 
+    public Ticket getItem(int position) {
+        return ticketList.get(position);
+    }
+}
