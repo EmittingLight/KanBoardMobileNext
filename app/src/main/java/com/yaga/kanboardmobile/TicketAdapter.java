@@ -160,4 +160,17 @@ public class TicketAdapter extends RecyclerView.Adapter<TicketAdapter.TicketView
     public Ticket getItem(int position) {
         return ticketList.get(position);
     }
+
+    public void removeItem(int position) {
+        ticketList.remove(position);
+        notifyItemRemoved(position);
+        notifyItemRangeChanged(position, getItemCount()); // 💡 ключевой момент!
+    }
+
+
+    public void restoreItem(Ticket ticket, int position) {
+        ticketList.add(position, ticket);
+        notifyItemInserted(position);
+    }
+
 }

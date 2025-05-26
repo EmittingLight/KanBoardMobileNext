@@ -15,8 +15,11 @@ import androidx.activity.result.ActivityResultLauncher;
 import androidx.activity.result.contract.ActivityResultContracts;
 import androidx.appcompat.app.AppCompatActivity;
 import androidx.appcompat.widget.Toolbar;
+import androidx.recyclerview.widget.ItemTouchHelper;
 import androidx.recyclerview.widget.LinearLayoutManager;
 import androidx.recyclerview.widget.RecyclerView;
+
+import com.google.android.material.snackbar.Snackbar;
 
 import java.util.ArrayList;
 import java.util.List;
@@ -28,6 +31,9 @@ public class MainActivity extends AppCompatActivity {
     private RecyclerView recyclerView;
     private TicketAdapter adapter;
     private TicketDatabaseHelper dbHelper;
+
+    private Ticket recentlyDeleted;
+    private int recentlyDeletedPosition;
 
     private final ActivityResultLauncher<Intent> addTicketLauncher =
             registerForActivityResult(new ActivityResultContracts.StartActivityForResult(), result -> {
@@ -101,6 +107,40 @@ public class MainActivity extends AppCompatActivity {
 
         recyclerView.setAdapter(adapter);
 
+        // ✅ Добавляем свайп для удаления
+        ItemTouchHelper.SimpleCallback swipeCallback = new ItemTouchHelper.SimpleCallback(0, ItemTouchHelper.LEFT | ItemTouchHelper.RIGHT) {
+            @Override public boolean onMove(RecyclerView rv, RecyclerView.ViewHolder vh, RecyclerView.ViewHolder target) {
+                return false;
+            }
+
+            @Override
+            public void onSwiped(RecyclerView.ViewHolder viewHolder, int direction) {
+                recentlyDeletedPosition = viewHolder.getAdapterPosition();
+                recentlyDeleted = adapter.getItem(recentlyDeletedPosition);
+
+                adapter.removeItem(recentlyDeletedPosition);
+
+                Snackbar.make(recyclerView, "Задача удалена", Snackbar.LENGTH_LONG)
+                        .setAction("ОТМЕНИТЬ", v -> {
+                            adapter.restoreItem(recentlyDeleted, recentlyDeletedPosition);
+                            recyclerView.scrollToPosition(recentlyDeletedPosition);
+                            updateStats();
+                        })
+                        .addCallback(new Snackbar.Callback() {
+                            @Override
+                            public void onDismissed(Snackbar transientBar, int event) {
+                                if (event != Snackbar.Callback.DISMISS_EVENT_ACTION) {
+                                    dbHelper.deleteTicket(recentlyDeleted);
+                                    updateStats();
+                                }
+                            }
+                        })
+                        .show();
+            }
+        };
+        new ItemTouchHelper(swipeCallback).attachToRecyclerView(recyclerView);
+
+        // Фильтрация и спиннер
         Spinner spinner = findViewById(R.id.spinnerStatusFilter);
         ArrayAdapter<String> spinnerAdapter = new ArrayAdapter<>(this,
                 android.R.layout.simple_spinner_item,
@@ -109,14 +149,11 @@ public class MainActivity extends AppCompatActivity {
         spinner.setAdapter(spinnerAdapter);
 
         spinner.setOnItemSelectedListener(new AdapterView.OnItemSelectedListener() {
-            @Override
-            public void onItemSelected(AdapterView<?> parent, View view, int position, long id) {
+            @Override public void onItemSelected(AdapterView<?> parent, View view, int position, long id) {
                 String selectedStatus = (String) parent.getItemAtPosition(position);
                 filterTickets(selectedStatus);
             }
-
-            @Override
-            public void onNothingSelected(AdapterView<?> parent) {
+            @Override public void onNothingSelected(AdapterView<?> parent) {
                 filterTickets("Все");
             }
         });
@@ -144,13 +181,11 @@ public class MainActivity extends AppCompatActivity {
     private void filterTickets(String status) {
         List<Ticket> allTickets = dbHelper.getAllTickets();
         List<Ticket> filtered = new ArrayList<>();
-
         for (Ticket ticket : allTickets) {
             if (status.equals("Все") || ticket.getStatus().equals(status)) {
                 filtered.add(ticket);
             }
         }
-
         Log.d(TAG, "Фильтрация: " + status + " | Результат: " + filtered.size());
         adapter.updateList(filtered);
         updateStats();
@@ -163,12 +198,9 @@ public class MainActivity extends AppCompatActivity {
 
         for (Ticket t : all) {
             switch (t.getStatus()) {
-                case "К выполнению":
-                    todo++; break;
-                case "В процессе":
-                    inProgress++; break;
-                case "Готово":
-                    done++; break;
+                case "К выполнению": todo++; break;
+                case "В процессе": inProgress++; break;
+                case "Готово": done++; break;
             }
         }
 

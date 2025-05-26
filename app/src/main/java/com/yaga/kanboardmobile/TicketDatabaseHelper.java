@@ -98,4 +98,12 @@ public class TicketDatabaseHelper extends SQLiteOpenHelper {
         Log.d(TAG, "Обновлено записей: " + updated);
         db.close();
     }
+
+    public void deleteTicket(Ticket ticket) {
+        SQLiteDatabase db = this.getWritableDatabase();
+        db.delete(TABLE_TICKETS, COLUMN_TITLE + " = ? AND " + COLUMN_DESCRIPTION + " = ? AND " + COLUMN_STATUS + " = ?",
+                new String[]{ticket.getTitle(), ticket.getDescription(), ticket.getStatus()});
+        db.close();
+    }
+
 }
