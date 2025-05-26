@@ -1,0 +1,18 @@
+<?xml version="1.0" encoding="utf-8"?>
+<layer-list xmlns:android="http://schemas.android.com/apk/res/android">
+    <!-- Отступ справа от стрелки, чтобы она не налезала на текст -->
+    <item android:right="32dp">
+        <shape android:shape="rectangle">
+            <solid android:color="@android:color/transparent"/>
+        </shape>
+    </item>
+
+    <item android:gravity="start|center_vertical">
+        <bitmap
+            android:src="@android:drawable/arrow_down_float"
+            android:tint="#000000"
+            android:gravity="center"/>
+    </item>
+</layer-list>
+
+
