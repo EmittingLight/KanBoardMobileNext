@@ -35,6 +35,7 @@ public class MainActivity extends AppCompatActivity {
     private Ticket recentlyDeleted;
     private int recentlyDeletedPosition;
 
+    // 🔄 внутри addTicketLauncher — теперь получаем дату создания и срок окончания
     private final ActivityResultLauncher<Intent> addTicketLauncher =
             registerForActivityResult(new ActivityResultContracts.StartActivityForResult(), result -> {
                 if (result.getResultCode() == RESULT_OK) {
@@ -43,9 +44,12 @@ public class MainActivity extends AppCompatActivity {
                         String title = data.getStringExtra("title");
                         String description = data.getStringExtra("description");
                         String status = data.getStringExtra("status");
+                        String createdAt = data.getStringExtra("created_at");
+                        String dueDate = data.getStringExtra("due_date");
 
-                        Log.d(TAG, "Получена новая задача: " + title + " | Статус: " + status);
-                        dbHelper.insertTicket(title, description, status);
+                        Log.d(TAG, "📌 Добавляется задача: " + title + " | Статус: " + status + " | Создана: " + createdAt + " | Срок: " + dueDate);
+
+                        dbHelper.insertTicket(title, description, status, createdAt, dueDate);
 
                         adapter.updateList(dbHelper.getAllTickets());
                         updateStats();
@@ -55,6 +59,7 @@ public class MainActivity extends AppCompatActivity {
                     }
                 }
             });
+
 
     private final ActivityResultLauncher<Intent> editTicketLauncher =
             registerForActivityResult(new ActivityResultContracts.StartActivityForResult(), result -> {

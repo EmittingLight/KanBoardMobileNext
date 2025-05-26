@@ -46,6 +46,27 @@
             android:textSize="14sp"
             android:paddingTop="4dp" />
 
+        <!-- 📅 Дата создания -->
+        <TextView
+            android:id="@+id/ticketCreatedAt"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Создано: 01.01.2025 12:00"
+            android:textSize="12sp"
+            android:textColor="@android:color/darker_gray"
+            android:layout_marginTop="4dp" />
+
+        <!-- 🕒 Срок окончания -->
+        <TextView
+            android:id="@+id/ticketDueDate"
+            android:layout_width="wrap_content"
+            android:layout_height="wrap_content"
+            android:text="Срок: 02.01.2025 18:00"
+            android:textSize="12sp"
+            android:textColor="@android:color/holo_red_dark"
+            android:layout_marginTop="2dp" />
+
+
         <!-- Блок статус + иконка -->
         <LinearLayout
             android:layout_width="wrap_content"

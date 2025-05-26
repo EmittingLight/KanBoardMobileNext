@@ -1,16 +1,20 @@
 package com.yaga.kanboardmobile;
 
+import android.graphics.Color;
 import android.view.LayoutInflater;
 import android.view.View;
 import android.view.ViewGroup;
-import android.view.animation.AlphaAnimation;
 import android.widget.ImageView;
 import android.widget.TextView;
 
 import androidx.annotation.NonNull;
 import androidx.recyclerview.widget.RecyclerView;
 
+import java.text.ParseException;
+import java.text.SimpleDateFormat;
+import java.util.Date;
 import java.util.List;
+import java.util.Locale;
 
 public class TicketAdapter extends RecyclerView.Adapter<TicketAdapter.TicketViewHolder> {
 
@@ -47,6 +51,8 @@ public class TicketAdapter extends RecyclerView.Adapter<TicketAdapter.TicketView
         Ticket ticket = ticketList.get(position);
         holder.titleTextView.setText(ticket.getTitle());
         holder.descriptionTextView.setText(ticket.getDescription());
+        holder.createdAtTextView.setText("Создано: " + ticket.getCreatedAt());
+        holder.dueDateTextView.setText("Срок: " + ticket.getDueDate());
 
         String status = ticket.getStatus();
         holder.statusTextView.setText(status);
@@ -77,6 +83,14 @@ public class TicketAdapter extends RecyclerView.Adapter<TicketAdapter.TicketView
                 iconRes = R.drawable.ic_todo;
         }
 
+        // Подсветка просроченных задач
+        if (isOverdue(ticket.getDueDate()) && !status.equals("Готово")) {
+            backgroundColor = Color.parseColor("#FFCDD2"); // светло-красный фон
+            holder.dueDateTextView.setTextColor(Color.RED); // красный текст даты
+        } else {
+            holder.dueDateTextView.setTextColor(Color.DKGRAY); // обычный цвет текста
+        }
+
         holder.statusTextView.setTextColor(color);
         holder.statusIcon.setImageResource(iconRes);
         if (holder.statusBadge != null) {
@@ -96,13 +110,27 @@ public class TicketAdapter extends RecyclerView.Adapter<TicketAdapter.TicketView
                 .start();
     }
 
+    private boolean isOverdue(String dueDateString) {
+        if (dueDateString == null || dueDateString.trim().isEmpty()) return false;
+
+        try {
+            SimpleDateFormat format = new SimpleDateFormat("dd.MM.yyyy HH:mm", Locale.getDefault());
+            Date dueDate = format.parse(dueDateString);
+            Date now = new Date();
+            return dueDate != null && dueDate.before(now);
+        } catch (ParseException e) {
+            e.printStackTrace();
+            return false;
+        }
+    }
+
     @Override
     public int getItemCount() {
         return ticketList.size();
     }
 
     public class TicketViewHolder extends RecyclerView.ViewHolder {
-        TextView titleTextView, descriptionTextView, statusTextView;
+        TextView titleTextView, descriptionTextView, statusTextView, createdAtTextView, dueDateTextView;
         ImageView statusIcon;
         View statusBadge;
 
@@ -111,6 +139,8 @@ public class TicketAdapter extends RecyclerView.Adapter<TicketAdapter.TicketView
             titleTextView = itemView.findViewById(R.id.ticketTitle);
             descriptionTextView = itemView.findViewById(R.id.ticketDescription);
             statusTextView = itemView.findViewById(R.id.ticketStatus);
+            createdAtTextView = itemView.findViewById(R.id.ticketCreatedAt);
+            dueDateTextView = itemView.findViewById(R.id.ticketDueDate);
             statusIcon = itemView.findViewById(R.id.statusIcon);
             statusBadge = itemView.findViewById(R.id.statusBadge);
 
@@ -149,11 +179,11 @@ public class TicketAdapter extends RecyclerView.Adapter<TicketAdapter.TicketView
         }
 
         ticket.setStatus(next);
+        dbHelper.updateTicket(ticket);
         notifyItemChanged(position);
-        dbHelper.updateTicket(ticket); // 💾 сохраняем в БД
 
         if (onStatusChanged != null) {
-            onStatusChanged.run(); // 🔥 обновим статистику
+            onStatusChanged.run();
         }
     }
 

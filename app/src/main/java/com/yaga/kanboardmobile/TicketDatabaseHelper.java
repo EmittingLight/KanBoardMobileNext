@@ -14,19 +14,23 @@ public class TicketDatabaseHelper extends SQLiteOpenHelper {
 
     private static final String TAG = "TicketDB";
     private static final String DATABASE_NAME = "tickets.db";
-    private static final int DATABASE_VERSION = 1;
+    private static final int DATABASE_VERSION = 2; // 🆙 увеличили версию
 
     public static final String TABLE_TICKETS = "tickets";
     public static final String COLUMN_ID = "_id";
     public static final String COLUMN_TITLE = "title";
     public static final String COLUMN_DESCRIPTION = "description";
     public static final String COLUMN_STATUS = "status";
+    public static final String COLUMN_CREATED_AT = "created_at";
+    public static final String COLUMN_DUE_DATE = "due_date"; // ⏰ новое поле
 
-    private static final String DATABASE_CREATE = "CREATE TABLE IF NOT EXISTS " + TABLE_TICKETS + " (" +
+    private static final String DATABASE_CREATE = "CREATE TABLE " + TABLE_TICKETS + " (" +
             COLUMN_ID + " INTEGER PRIMARY KEY AUTOINCREMENT, " +
             COLUMN_TITLE + " TEXT NOT NULL, " +
             COLUMN_DESCRIPTION + " TEXT, " +
-            COLUMN_STATUS + " TEXT NOT NULL);";
+            COLUMN_STATUS + " TEXT NOT NULL, " +
+            COLUMN_CREATED_AT + " TEXT, " +
+            COLUMN_DUE_DATE + " TEXT);";
 
     public TicketDatabaseHelper(Context context) {
         super(context, DATABASE_NAME, null, DATABASE_VERSION);
@@ -46,14 +50,17 @@ public class TicketDatabaseHelper extends SQLiteOpenHelper {
         onCreate(db);
     }
 
-    public void insertTicket(String title, String description, String status) {
+    public void insertTicket(String title, String description, String status, String createdAt, String dueDate) {
         SQLiteDatabase db = this.getWritableDatabase();
         ContentValues values = new ContentValues();
         values.put(COLUMN_TITLE, title);
         values.put(COLUMN_DESCRIPTION, description);
         values.put(COLUMN_STATUS, status);
+        values.put(COLUMN_CREATED_AT, createdAt);
+        values.put(COLUMN_DUE_DATE, dueDate);
+
         long result = db.insert(TABLE_TICKETS, null, values);
-        Log.d(TAG, "Добавлена задача: " + title + " | Результат вставки: " + result);
+        Log.d(TAG, "Добавлена задача: " + title + " | Время: " + createdAt + " | Срок: " + dueDate + " | Результат: " + result);
         db.close();
     }
 
@@ -67,7 +74,10 @@ public class TicketDatabaseHelper extends SQLiteOpenHelper {
                 String title = cursor.getString(cursor.getColumnIndexOrThrow(COLUMN_TITLE));
                 String description = cursor.getString(cursor.getColumnIndexOrThrow(COLUMN_DESCRIPTION));
                 String status = cursor.getString(cursor.getColumnIndexOrThrow(COLUMN_STATUS));
-                Ticket ticket = new Ticket(title, description, status);
+                String createdAt = cursor.getString(cursor.getColumnIndexOrThrow(COLUMN_CREATED_AT));
+                String dueDate = cursor.getString(cursor.getColumnIndexOrThrow(COLUMN_DUE_DATE));
+
+                Ticket ticket = new Ticket(title, description, status, createdAt, dueDate);
                 ticketList.add(ticket);
             } while (cursor.moveToNext());
         }
@@ -80,13 +90,14 @@ public class TicketDatabaseHelper extends SQLiteOpenHelper {
         return ticketList;
     }
 
-    // ✅ Обновление задачи (поиск по title и description — если нет ID)
     public void updateTicket(Ticket ticket) {
         SQLiteDatabase db = this.getWritableDatabase();
         ContentValues values = new ContentValues();
         values.put(COLUMN_TITLE, ticket.getTitle());
         values.put(COLUMN_DESCRIPTION, ticket.getDescription());
         values.put(COLUMN_STATUS, ticket.getStatus());
+        values.put(COLUMN_CREATED_AT, ticket.getCreatedAt());
+        values.put(COLUMN_DUE_DATE, ticket.getDueDate());
 
         int updated = db.update(
                 TABLE_TICKETS,
@@ -105,5 +116,4 @@ public class TicketDatabaseHelper extends SQLiteOpenHelper {
                 new String[]{ticket.getTitle(), ticket.getDescription(), ticket.getStatus()});
         db.close();
     }
-
 }
