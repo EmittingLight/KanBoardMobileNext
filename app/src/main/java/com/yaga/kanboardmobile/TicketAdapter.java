@@ -40,6 +40,23 @@ public class TicketAdapter extends RecyclerView.Adapter<TicketAdapter.TicketView
         Ticket ticket = ticketList.get(position);
         holder.titleTextView.setText(ticket.getTitle());
         holder.descriptionTextView.setText(ticket.getDescription());
+        String status = ticket.getStatus();
+        holder.statusTextView.setText(status);
+
+        switch (status) {
+            case "К выполнению":
+                holder.statusTextView.setText("📝 К выполнению");
+                holder.statusTextView.setTextColor(0xFF1976D2); // синий
+                break;
+            case "В процессе":
+                holder.statusTextView.setText("🔧 В процессе");
+                holder.statusTextView.setTextColor(0xFFFF9800); // оранжевый
+                break;
+            case "Готово":
+                holder.statusTextView.setText("✅ Готово");
+                holder.statusTextView.setTextColor(0xFF388E3C); // зелёный
+                break;
+        }
     }
 
     @Override
@@ -48,12 +65,13 @@ public class TicketAdapter extends RecyclerView.Adapter<TicketAdapter.TicketView
     }
 
     public class TicketViewHolder extends RecyclerView.ViewHolder {
-        TextView titleTextView, descriptionTextView;
+        TextView titleTextView, descriptionTextView, statusTextView;
 
         public TicketViewHolder(@NonNull View itemView) {
             super(itemView);
             titleTextView = itemView.findViewById(R.id.ticketTitle);
             descriptionTextView = itemView.findViewById(R.id.ticketDescription);
+            statusTextView = itemView.findViewById(R.id.ticketStatus);
 
             itemView.setOnClickListener(v -> {
                 if (listener != null) {

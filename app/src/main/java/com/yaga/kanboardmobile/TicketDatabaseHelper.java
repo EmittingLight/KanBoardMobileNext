@@ -79,4 +79,23 @@ public class TicketDatabaseHelper extends SQLiteOpenHelper {
 
         return ticketList;
     }
+
+    // ✅ Обновление задачи (поиск по title и description — если нет ID)
+    public void updateTicket(Ticket ticket) {
+        SQLiteDatabase db = this.getWritableDatabase();
+        ContentValues values = new ContentValues();
+        values.put(COLUMN_TITLE, ticket.getTitle());
+        values.put(COLUMN_DESCRIPTION, ticket.getDescription());
+        values.put(COLUMN_STATUS, ticket.getStatus());
+
+        int updated = db.update(
+                TABLE_TICKETS,
+                values,
+                COLUMN_TITLE + "=? AND " + COLUMN_DESCRIPTION + "=?",
+                new String[]{ticket.getTitle(), ticket.getDescription()}
+        );
+
+        Log.d(TAG, "Обновлено записей: " + updated);
+        db.close();
+    }
 }

@@ -5,6 +5,10 @@ import android.os.Bundle;
 import android.util.Log;
 import android.view.Menu;
 import android.view.MenuItem;
+import android.view.View;
+import android.widget.AdapterView;
+import android.widget.ArrayAdapter;
+import android.widget.Spinner;
 
 import androidx.activity.result.ActivityResultLauncher;
 import androidx.activity.result.contract.ActivityResultContracts;
@@ -15,10 +19,6 @@ import androidx.recyclerview.widget.RecyclerView;
 
 import java.util.ArrayList;
 import java.util.List;
-import android.view.View;
-import android.widget.Spinner;
-import android.widget.ArrayAdapter;
-import android.widget.AdapterView;
 
 public class MainActivity extends AppCompatActivity {
 
@@ -35,16 +35,36 @@ public class MainActivity extends AppCompatActivity {
                     if (data != null) {
                         String title = data.getStringExtra("title");
                         String description = data.getStringExtra("description");
+                        String status = data.getStringExtra("status");
 
-                        Log.d(TAG, "Получена задача от активности: " + title);
-                        dbHelper.insertTicket(title, description, "К выполнению");
+                        Log.d(TAG, "Получена новая задача: " + title + " | Статус: " + status);
+                        dbHelper.insertTicket(title, description, status);
 
-                        // Обновляем список
                         adapter.updateList(dbHelper.getAllTickets());
 
-                        // Сбрасываем фильтр
                         Spinner spinner = findViewById(R.id.spinnerStatusFilter);
                         spinner.setSelection(0);
+                    }
+                }
+            });
+
+    private final ActivityResultLauncher<Intent> editTicketLauncher =
+            registerForActivityResult(new ActivityResultContracts.StartActivityForResult(), result -> {
+                if (result.getResultCode() == RESULT_OK && result.getData() != null) {
+                    Intent data = result.getData();
+                    String newTitle = data.getStringExtra("title");
+                    String newDescription = data.getStringExtra("description");
+                    String newStatus = data.getStringExtra("status");
+                    int position = data.getIntExtra("position", -1);
+
+                    if (position != -1) {
+                        Ticket ticket = adapter.getItem(position);
+                        ticket.setTitle(newTitle);
+                        ticket.setDescription(newDescription);
+                        ticket.setStatus(newStatus);
+
+                        dbHelper.updateTicket(ticket); // 💾 если ты реализуешь это
+                        adapter.notifyItemChanged(position);
                     }
                 }
             });
@@ -71,10 +91,10 @@ public class MainActivity extends AppCompatActivity {
             intent.putExtra("isEdit", true);
             intent.putExtra("title", ticket.getTitle());
             intent.putExtra("description", ticket.getDescription());
+            intent.putExtra("status", ticket.getStatus());
             intent.putExtra("position", position);
             editTicketLauncher.launch(intent);
         });
-
         recyclerView.setAdapter(adapter);
 
         Spinner spinner = findViewById(R.id.spinnerStatusFilter);
@@ -97,7 +117,6 @@ public class MainActivity extends AppCompatActivity {
             }
         });
 
-        // Загружаем изначально
         filterTickets("Все");
     }
 
@@ -130,21 +149,4 @@ public class MainActivity extends AppCompatActivity {
         Log.d(TAG, "Фильтрация: " + status + " | Результат: " + filtered.size());
         adapter.updateList(filtered);
     }
-
-    private final ActivityResultLauncher<Intent> editTicketLauncher =
-            registerForActivityResult(new ActivityResultContracts.StartActivityForResult(), result -> {
-                if (result.getResultCode() == RESULT_OK && result.getData() != null) {
-                    Intent data = result.getData();
-                    String newTitle = data.getStringExtra("title");
-                    String newDescription = data.getStringExtra("description");
-                    int position = data.getIntExtra("position", -1);
-
-                    if (position != -1) {
-                        Ticket ticket = adapter.getItem(position);
-                        ticket.setTitle(newTitle);
-                        ticket.setDescription(newDescription);
-                        adapter.notifyItemChanged(position);
-                    }
-                }
-            });
 }
