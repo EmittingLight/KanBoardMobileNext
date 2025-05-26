@@ -84,7 +84,8 @@ public class MainActivity extends AppCompatActivity {
         recyclerView = findViewById(R.id.recyclerViewTickets);
         recyclerView.setLayoutManager(new LinearLayoutManager(this));
 
-        adapter = new TicketAdapter(new ArrayList<>());
+        adapter = new TicketAdapter(new ArrayList<>(), dbHelper);
+
         adapter.setOnItemClickListener(position -> {
             Ticket ticket = adapter.getItem(position);
             Intent intent = new Intent(MainActivity.this, AddTicketActivity.class);

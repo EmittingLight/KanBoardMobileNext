@@ -16,13 +16,15 @@ public class TicketAdapter extends RecyclerView.Adapter<TicketAdapter.TicketView
 
     private List<Ticket> ticketList;
     private OnItemClickListener listener;
+    private TicketDatabaseHelper dbHelper;
 
     public interface OnItemClickListener {
         void onItemClick(int position);
     }
 
-    public TicketAdapter(List<Ticket> ticketList) {
+    public TicketAdapter(List<Ticket> ticketList, TicketDatabaseHelper dbHelper) {
         this.ticketList = ticketList;
+        this.dbHelper = dbHelper;
     }
 
     public void setOnItemClickListener(OnItemClickListener listener) {
@@ -72,34 +74,24 @@ public class TicketAdapter extends RecyclerView.Adapter<TicketAdapter.TicketView
                 iconRes = R.drawable.ic_todo;
         }
 
-        // 🎨 Цвет текста статуса
         holder.statusTextView.setTextColor(color);
-
-        // 📌 Иконка
         holder.statusIcon.setImageResource(iconRes);
-
-        // 🔴 Badge
         if (holder.statusBadge != null) {
             holder.statusBadge.getBackground().setTint(color);
         }
 
-        // 🎨 Подсветка карточки
         holder.itemView.setBackgroundColor(backgroundColor);
 
-        // ✅ 🔄 Анимация появления через ViewPropertyAnimator (лучше, чем AlphaAnimation)
-        // 🔄 Плавная анимация появления с задержкой и мягким каскадом
+        // ✨ Анимация
         holder.itemView.setAlpha(0f);
-        holder.itemView.setTranslationY(50f); // 👇 эффект "выплытия снизу"
+        holder.itemView.setTranslationY(50f);
         holder.itemView.animate()
                 .alpha(1f)
                 .translationY(0f)
-                .setDuration(700)              // ⏱ медленное проявление
-                .setStartDelay(position * 100L) // 🌀 волна по 100 мс на каждую
+                .setDuration(700)
+                .setStartDelay(position * 100L)
                 .start();
-
-
     }
-
 
     @Override
     public int getItemCount() {
@@ -117,7 +109,11 @@ public class TicketAdapter extends RecyclerView.Adapter<TicketAdapter.TicketView
             descriptionTextView = itemView.findViewById(R.id.ticketDescription);
             statusTextView = itemView.findViewById(R.id.ticketStatus);
             statusIcon = itemView.findViewById(R.id.statusIcon);
-            statusBadge = itemView.findViewById(R.id.statusBadge); // 💡 View-кружок
+            statusBadge = itemView.findViewById(R.id.statusBadge);
+
+            // 💡 Обработчики смены статуса
+            statusIcon.setOnClickListener(v -> cycleStatus(getAdapterPosition()));
+            statusTextView.setOnClickListener(v -> cycleStatus(getAdapterPosition()));
 
             itemView.setOnClickListener(v -> {
                 if (listener != null) {
@@ -128,6 +124,31 @@ public class TicketAdapter extends RecyclerView.Adapter<TicketAdapter.TicketView
                 }
             });
         }
+    }
+
+    private void cycleStatus(int position) {
+        if (position < 0 || position >= ticketList.size()) return;
+
+        Ticket ticket = ticketList.get(position);
+        String current = ticket.getStatus();
+        String next;
+
+        switch (current) {
+            case "К выполнению":
+                next = "В процессе";
+                break;
+            case "В процессе":
+                next = "Готово";
+                break;
+            case "Готово":
+            default:
+                next = "К выполнению";
+                break;
+        }
+
+        ticket.setStatus(next);
+        notifyItemChanged(position);
+        dbHelper.updateTicket(ticket); // 💾 сохраняем
     }
 
     public void updateList(List<Ticket> newList) {
