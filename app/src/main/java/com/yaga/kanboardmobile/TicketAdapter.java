@@ -14,17 +14,20 @@ import java.util.List;
 
 public class TicketAdapter extends RecyclerView.Adapter<TicketAdapter.TicketViewHolder> {
 
-    private List<Ticket> ticketList;
+    private final List<Ticket> ticketList;
+    private final TicketDatabaseHelper dbHelper;
+    private final Runnable onStatusChanged;
+
     private OnItemClickListener listener;
-    private TicketDatabaseHelper dbHelper;
 
     public interface OnItemClickListener {
         void onItemClick(int position);
     }
 
-    public TicketAdapter(List<Ticket> ticketList, TicketDatabaseHelper dbHelper) {
+    public TicketAdapter(List<Ticket> ticketList, TicketDatabaseHelper dbHelper, Runnable onStatusChanged) {
         this.ticketList = ticketList;
         this.dbHelper = dbHelper;
+        this.onStatusChanged = onStatusChanged;
     }
 
     public void setOnItemClickListener(OnItemClickListener listener) {
@@ -111,7 +114,6 @@ public class TicketAdapter extends RecyclerView.Adapter<TicketAdapter.TicketView
             statusIcon = itemView.findViewById(R.id.statusIcon);
             statusBadge = itemView.findViewById(R.id.statusBadge);
 
-            // 💡 Обработчики смены статуса
             statusIcon.setOnClickListener(v -> cycleStatus(getAdapterPosition()));
             statusTextView.setOnClickListener(v -> cycleStatus(getAdapterPosition()));
 
@@ -148,7 +150,11 @@ public class TicketAdapter extends RecyclerView.Adapter<TicketAdapter.TicketView
 
         ticket.setStatus(next);
         notifyItemChanged(position);
-        dbHelper.updateTicket(ticket); // 💾 сохраняем
+        dbHelper.updateTicket(ticket); // 💾 сохраняем в БД
+
+        if (onStatusChanged != null) {
+            onStatusChanged.run(); // 🔥 обновим статистику
+        }
     }
 
     public void updateList(List<Ticket> newList) {
@@ -164,13 +170,11 @@ public class TicketAdapter extends RecyclerView.Adapter<TicketAdapter.TicketView
     public void removeItem(int position) {
         ticketList.remove(position);
         notifyItemRemoved(position);
-        notifyItemRangeChanged(position, getItemCount()); // 💡 ключевой момент!
+        notifyItemRangeChanged(position, getItemCount());
     }
-
 
     public void restoreItem(Ticket ticket, int position) {
         ticketList.add(position, ticket);
         notifyItemInserted(position);
     }
-
 }
