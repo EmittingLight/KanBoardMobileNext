@@ -6,6 +6,7 @@ public class Ticket {
     private String status;
     private String createdAt;
     private String dueDate;
+    private int id;
 
     public Ticket(String title, String description, String status, String createdAt, String dueDate) {
         this.title = title;
@@ -13,6 +14,23 @@ public class Ticket {
         this.status = status;
         this.createdAt = createdAt;
         this.dueDate = dueDate;
+    }
+
+    public Ticket(int id, String title, String description, String status, String createdAt, String dueDate) {
+        this.id = id;
+        this.title = title;
+        this.description = description;
+        this.status = status;
+        this.createdAt = createdAt;
+        this.dueDate = dueDate;
+    }
+
+    public int getId() {
+        return id;
+    }
+
+    public void setId(int id) {
+        this.id = id;
     }
 
     public String getTitle() {

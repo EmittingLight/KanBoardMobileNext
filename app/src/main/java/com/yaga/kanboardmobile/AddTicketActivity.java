@@ -28,19 +28,18 @@ public class AddTicketActivity extends AppCompatActivity {
     private EditText editTextDueDate;
 
     private final Calendar dueCalendar = Calendar.getInstance();
+    private int ticketId = -1; // 💾 ID задачи
 
     @Override
     protected void onCreate(Bundle savedInstanceState) {
         super.onCreate(savedInstanceState);
 
-        // 💥 Возвращаем статус-бар
         Window window = getWindow();
         window.clearFlags(WindowManager.LayoutParams.FLAG_FULLSCREEN);
         window.addFlags(WindowManager.LayoutParams.FLAG_FORCE_NOT_FULLSCREEN);
 
         setContentView(R.layout.activity_add_ticket);
 
-        // Элементы интерфейса
         EditText editTextTitle = findViewById(R.id.editTextTitle);
         EditText editTextDescription = findViewById(R.id.editTextDescription);
         Spinner spinnerStatus = findViewById(R.id.spinnerStatus);
@@ -49,7 +48,6 @@ public class AddTicketActivity extends AppCompatActivity {
         Button buttonSave = findViewById(R.id.buttonSave);
         MaterialToolbar toolbar = findViewById(R.id.toolbar_add);
 
-        // Статус
         ArrayAdapter<String> statusAdapter = new ArrayAdapter<>(
                 this,
                 android.R.layout.simple_spinner_item,
@@ -58,21 +56,19 @@ public class AddTicketActivity extends AppCompatActivity {
         statusAdapter.setDropDownViewResource(android.R.layout.simple_spinner_dropdown_item);
         spinnerStatus.setAdapter(statusAdapter);
 
-        // Установка текущего времени по умолчанию
         if (editTextCreatedAt.getText().toString().isEmpty()) {
             String now = new SimpleDateFormat("dd.MM.yyyy HH:mm", Locale.getDefault())
                     .format(Calendar.getInstance().getTime());
             editTextCreatedAt.setText(now);
         }
 
-        // Выбор срока окончания
         editTextDueDate.setOnClickListener(v -> showDateTimePicker());
 
-        // Проверка на редактирование
         Intent intent = getIntent();
         boolean isEdit = intent.getBooleanExtra("isEdit", false);
 
         if (isEdit) {
+            ticketId = intent.getIntExtra("id", -1); // 🆔 сохраняем ID
             editTextTitle.setText(intent.getStringExtra("title"));
             editTextDescription.setText(intent.getStringExtra("description"));
             editTextCreatedAt.setText(intent.getStringExtra("created_at"));
@@ -97,23 +93,41 @@ public class AddTicketActivity extends AppCompatActivity {
             String dueDate = editTextDueDate.getText().toString().trim();
 
             if (!title.isEmpty()) {
-                Intent resultIntent = new Intent();
-                resultIntent.putExtra("title", title);
-                resultIntent.putExtra("description", description);
-                resultIntent.putExtra("status", status);
-                resultIntent.putExtra("created_at", createdAt);
-                resultIntent.putExtra("due_date", dueDate);
+                TicketDatabaseHelper db = new TicketDatabaseHelper(this);
 
-                if (isEdit) {
-                    resultIntent.putExtra("position", intent.getIntExtra("position", -1));
+                if (isEdit && ticketId != -1) {
+                    Ticket updatedTicket = new Ticket(ticketId, title, description, status, createdAt, dueDate);
+                    db.updateTicket(updatedTicket);
+
+                    Intent resultIntent = new Intent();
+                    resultIntent.putExtra("id", ticketId); // 🆔 обязательно
+                    resultIntent.putExtra("title", title);
+                    resultIntent.putExtra("description", description);
+                    resultIntent.putExtra("status", status);
+                    resultIntent.putExtra("created_at", createdAt);
+                    resultIntent.putExtra("due_date", dueDate);
+                    setResult(RESULT_OK, resultIntent);
+
+                    finish(); // 🔚 только теперь закрываем
+
+            } else {
+                    // 🆕 Создание
+                    db.insertTicket(title, description, status, createdAt, dueDate);
+
+                    Intent resultIntent = new Intent();
+                    resultIntent.putExtra("title", title);
+                    resultIntent.putExtra("description", description);
+                    resultIntent.putExtra("status", status);
+                    resultIntent.putExtra("created_at", createdAt);
+                    resultIntent.putExtra("due_date", dueDate);
+                    setResult(RESULT_OK, resultIntent);
+                    finish();
                 }
-
-                setResult(RESULT_OK, resultIntent);
-                finish();
             } else {
                 Toast.makeText(this, "Введите название задачи", Toast.LENGTH_SHORT).show();
             }
         });
+
     }
 
     private void showDateTimePicker() {

@@ -78,7 +78,9 @@ public class TicketDatabaseHelper extends SQLiteOpenHelper {
                 String createdAt = cursor.getString(cursor.getColumnIndexOrThrow(COLUMN_CREATED_AT));
                 String dueDate = cursor.getString(cursor.getColumnIndexOrThrow(COLUMN_DUE_DATE));
 
-                Ticket ticket = new Ticket(title, description, status, createdAt, dueDate);
+                int id = cursor.getInt(cursor.getColumnIndexOrThrow(COLUMN_ID));
+                Ticket ticket = new Ticket(id, title, description, status, createdAt, dueDate);
+
 
                 // 📅 Проверка на просрочку
                 if (dueDate != null && !dueDate.isEmpty() && !"Готово".equals(status)) {
@@ -125,18 +127,76 @@ public class TicketDatabaseHelper extends SQLiteOpenHelper {
         int updated = db.update(
                 TABLE_TICKETS,
                 values,
-                COLUMN_TITLE + "=? AND " + COLUMN_DESCRIPTION + "=?",
-                new String[]{ticket.getTitle(), ticket.getDescription()}
+                COLUMN_ID + "=?",
+                new String[]{String.valueOf(ticket.getId())}
         );
 
         Log.d(TAG, "Обновлено записей: " + updated);
         db.close();
     }
 
+
     public void deleteTicket(Ticket ticket) {
         SQLiteDatabase db = this.getWritableDatabase();
-        db.delete(TABLE_TICKETS, COLUMN_TITLE + " = ? AND " + COLUMN_DESCRIPTION + " = ? AND " + COLUMN_STATUS + " = ?",
-                new String[]{ticket.getTitle(), ticket.getDescription(), ticket.getStatus()});
+        db.delete(TABLE_TICKETS, COLUMN_ID + " = ?", new String[]{String.valueOf(ticket.getId())});
         db.close();
     }
+
+
+    public List<Ticket> getAllTicketsRaw() {
+        List<Ticket> tickets = new ArrayList<>();
+        SQLiteDatabase db = this.getReadableDatabase();
+        Cursor cursor = db.rawQuery("SELECT * FROM " + TABLE_TICKETS, null);
+
+        if (cursor.moveToFirst()) {
+            do {
+                int id = cursor.getInt(cursor.getColumnIndexOrThrow(COLUMN_ID));
+                String title = cursor.getString(cursor.getColumnIndexOrThrow(COLUMN_TITLE));
+                String description = cursor.getString(cursor.getColumnIndexOrThrow(COLUMN_DESCRIPTION));
+                String status = cursor.getString(cursor.getColumnIndexOrThrow(COLUMN_STATUS));
+                String createdAt = cursor.getString(cursor.getColumnIndexOrThrow(COLUMN_CREATED_AT));
+                String dueDate = cursor.getString(cursor.getColumnIndexOrThrow(COLUMN_DUE_DATE));
+
+                Ticket ticket = new Ticket(id, title, description, status, createdAt, dueDate);
+                tickets.add(ticket);
+            } while (cursor.moveToNext());
+        }
+
+        cursor.close();
+        db.close();
+        return tickets;
+    }
+    public void updateOverdueStatuses() {
+        SQLiteDatabase db = this.getWritableDatabase();
+        Cursor cursor = db.rawQuery("SELECT * FROM " + TABLE_TICKETS + " WHERE " + COLUMN_STATUS + " != 'Готово'", null);
+
+        if (cursor.moveToFirst()) {
+            do {
+                int id = cursor.getInt(cursor.getColumnIndexOrThrow(COLUMN_ID));
+                String dueDateStr = cursor.getString(cursor.getColumnIndexOrThrow(COLUMN_DUE_DATE));
+                String status = cursor.getString(cursor.getColumnIndexOrThrow(COLUMN_STATUS));
+
+                try {
+                    if (dueDateStr != null && !dueDateStr.isEmpty()) {
+                        java.text.SimpleDateFormat sdf = new java.text.SimpleDateFormat("dd.MM.yyyy HH:mm", java.util.Locale.getDefault());
+                        java.util.Date dueDate = sdf.parse(dueDateStr);
+                        java.util.Date now = new java.util.Date();
+
+                        if (dueDate != null && dueDate.before(now)) {
+                            ContentValues values = new ContentValues();
+                            values.put(COLUMN_STATUS, "К выполнению"); // или "Просрочено", если хочешь новый статус
+                            db.update(TABLE_TICKETS, values, COLUMN_ID + "=?", new String[]{String.valueOf(id)});
+                        }
+                    }
+                } catch (Exception e) {
+                    e.printStackTrace();
+                }
+
+            } while (cursor.moveToNext());
+        }
+
+        cursor.close();
+        db.close();
+    }
+
 }

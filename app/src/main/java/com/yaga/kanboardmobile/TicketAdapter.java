@@ -15,6 +15,8 @@ import java.text.SimpleDateFormat;
 import java.util.Date;
 import java.util.List;
 import java.util.Locale;
+import android.util.Log;
+
 
 public class TicketAdapter extends RecyclerView.Adapter<TicketAdapter.TicketViewHolder> {
 
@@ -188,10 +190,13 @@ public class TicketAdapter extends RecyclerView.Adapter<TicketAdapter.TicketView
     }
 
     public void updateList(List<Ticket> newList) {
-        ticketList.clear();
-        ticketList.addAll(newList);
-        notifyDataSetChanged();
+        this.ticketList.clear();
+        this.ticketList.addAll(newList);
+        Log.d("Adapter", "Список обновлён: " + newList.size()); // 👈 ВОТ СЮДА
+        notifyDataSetChanged(); // 🔥 ОБЯЗАТЕЛЕН
     }
+
+
 
     public Ticket getItem(int position) {
         return ticketList.get(position);
@@ -207,4 +212,5 @@ public class TicketAdapter extends RecyclerView.Adapter<TicketAdapter.TicketView
         ticketList.add(position, ticket);
         notifyItemInserted(position);
     }
+
 }

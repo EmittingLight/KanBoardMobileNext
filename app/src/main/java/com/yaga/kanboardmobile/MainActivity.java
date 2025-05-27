@@ -4,7 +4,6 @@ import android.content.Intent;
 import android.os.Bundle;
 import android.os.Handler;
 import android.os.Looper;
-import android.util.Log;
 import android.view.Menu;
 import android.view.MenuItem;
 import android.view.View;
@@ -42,16 +41,9 @@ public class MainActivity extends AppCompatActivity {
 
     private final ActivityResultLauncher<Intent> addTicketLauncher =
             registerForActivityResult(new ActivityResultContracts.StartActivityForResult(), result -> {
-                if (result.getResultCode() == RESULT_OK && result.getData() != null) {
-                    Intent data = result.getData();
-                    String title = data.getStringExtra("title");
-                    String description = data.getStringExtra("description");
-                    String status = data.getStringExtra("status");
-                    String createdAt = data.getStringExtra("created_at");
-                    String dueDate = data.getStringExtra("due_date");
-
-                    dbHelper.insertTicket(title, description, status, createdAt, dueDate);
+                if (result.getResultCode() == RESULT_OK) {
                     refreshList();
+                    updateStats(); // 💥 обновляем статистику сразу после добавления
                 }
             });
 
@@ -59,17 +51,20 @@ public class MainActivity extends AppCompatActivity {
             registerForActivityResult(new ActivityResultContracts.StartActivityForResult(), result -> {
                 if (result.getResultCode() == RESULT_OK && result.getData() != null) {
                     Intent data = result.getData();
-                    int position = data.getIntExtra("position", -1);
-                    if (position != -1) {
-                        Ticket ticket = adapter.getItem(position);
-                        ticket.setTitle(data.getStringExtra("title"));
-                        ticket.setDescription(data.getStringExtra("description"));
-                        ticket.setStatus(data.getStringExtra("status"));
-                        ticket.setCreatedAt(data.getStringExtra("created_at"));
-                        ticket.setDueDate(data.getStringExtra("due_date"));
 
-                        dbHelper.updateTicket(ticket);
+                    int id = data.getIntExtra("id", -1);
+                    if (id != -1) {
+                        String title = data.getStringExtra("title");
+                        String description = data.getStringExtra("description");
+                        String status = data.getStringExtra("status");
+                        String createdAt = data.getStringExtra("created_at");
+                        String dueDate = data.getStringExtra("due_date");
+
+                        Ticket updated = new Ticket(id, title, description, status, createdAt, dueDate);
+                        dbHelper.updateTicket(updated);
+
                         refreshList();
+                        recyclerView.scrollToPosition(0);
                     }
                 }
             });
@@ -90,51 +85,10 @@ public class MainActivity extends AppCompatActivity {
 
         adapter = new TicketAdapter(new ArrayList<>(), dbHelper, this::updateStats);
         recyclerView.setAdapter(adapter);
+        setupAdapterListeners();
 
-        adapter.setOnItemClickListener(position -> {
-            Ticket ticket = adapter.getItem(position);
-            Intent intent = new Intent(this, AddTicketActivity.class);
-            intent.putExtra("isEdit", true);
-            intent.putExtra("title", ticket.getTitle());
-            intent.putExtra("description", ticket.getDescription());
-            intent.putExtra("status", ticket.getStatus());
-            intent.putExtra("created_at", ticket.getCreatedAt());
-            intent.putExtra("due_date", ticket.getDueDate());
-            intent.putExtra("position", position);
-            editTicketLauncher.launch(intent);
-        });
+        updateStats();
 
-        // Свайп
-        ItemTouchHelper.SimpleCallback swipeCallback = new ItemTouchHelper.SimpleCallback(0, ItemTouchHelper.LEFT | ItemTouchHelper.RIGHT) {
-            @Override public boolean onMove(RecyclerView rv, RecyclerView.ViewHolder vh, RecyclerView.ViewHolder target) {
-                return false;
-            }
-
-            @Override public void onSwiped(RecyclerView.ViewHolder viewHolder, int direction) {
-                recentlyDeletedPosition = viewHolder.getAdapterPosition();
-                recentlyDeleted = adapter.getItem(recentlyDeletedPosition);
-                adapter.removeItem(recentlyDeletedPosition);
-
-                Snackbar.make(recyclerView, "Задача удалена", Snackbar.LENGTH_LONG)
-                        .setAction("ОТМЕНИТЬ", v -> {
-                            adapter.restoreItem(recentlyDeleted, recentlyDeletedPosition);
-                            recyclerView.scrollToPosition(recentlyDeletedPosition);
-                            updateStats();
-                        })
-                        .addCallback(new Snackbar.Callback() {
-                            @Override public void onDismissed(Snackbar transientBar, int event) {
-                                if (event != Snackbar.Callback.DISMISS_EVENT_ACTION) {
-                                    dbHelper.deleteTicket(recentlyDeleted);
-                                    updateStats();
-                                }
-                            }
-                        })
-                        .show();
-            }
-        };
-        new ItemTouchHelper(swipeCallback).attachToRecyclerView(recyclerView);
-
-        // Спиннер
         Spinner spinner = findViewById(R.id.spinnerStatusFilter);
         ArrayAdapter<String> spinnerAdapter = new ArrayAdapter<>(this,
                 android.R.layout.simple_spinner_item,
@@ -151,12 +105,12 @@ public class MainActivity extends AppCompatActivity {
             }
         });
 
-        // 🔁 Таймер автообновления
         refreshRunnable = new Runnable() {
             @Override
             public void run() {
+                dbHelper.updateOverdueStatuses();
                 refreshList();
-                refreshHandler.postDelayed(this, 30_000); // каждые 30 сек
+                refreshHandler.postDelayed(this, 30_000);
             }
         };
         refreshHandler.post(refreshRunnable);
@@ -195,12 +149,17 @@ public class MainActivity extends AppCompatActivity {
             }
         }
 
-        adapter.updateList(filtered);
-        updateStats();
+        adapter = new TicketAdapter(filtered, dbHelper, this::updateStats);
+        recyclerView.setAdapter(adapter);
+        setupAdapterListeners();
+
+        updateStats(); // 💥 всегда обновляем после загрузки списка
     }
 
+
     private void updateStats() {
-        List<Ticket> all = dbHelper.getAllTickets();
+        List<Ticket> all = dbHelper.getAllTicketsRaw();
+
         int total = all.size();
         int todo = 0, inProgress = 0, done = 0;
 
@@ -217,5 +176,50 @@ public class MainActivity extends AppCompatActivity {
                 " | К выполнению: " + todo +
                 " | В процессе: " + inProgress +
                 " | Готово: " + done);
+    }
+
+    private void setupAdapterListeners() {
+        adapter.setOnItemClickListener(position -> {
+            Ticket ticket = adapter.getItem(position);
+            Intent intent = new Intent(this, AddTicketActivity.class);
+            intent.putExtra("isEdit", true);
+            intent.putExtra("id", ticket.getId());
+            intent.putExtra("title", ticket.getTitle());
+            intent.putExtra("description", ticket.getDescription());
+            intent.putExtra("status", ticket.getStatus());
+            intent.putExtra("created_at", ticket.getCreatedAt());
+            intent.putExtra("due_date", ticket.getDueDate());
+            intent.putExtra("position", position);
+            editTicketLauncher.launch(intent);
+        });
+
+        ItemTouchHelper.SimpleCallback swipeCallback = new ItemTouchHelper.SimpleCallback(0, ItemTouchHelper.LEFT | ItemTouchHelper.RIGHT) {
+            @Override public boolean onMove(RecyclerView rv, RecyclerView.ViewHolder vh, RecyclerView.ViewHolder target) {
+                return false;
+            }
+
+            @Override public void onSwiped(RecyclerView.ViewHolder viewHolder, int direction) {
+                recentlyDeletedPosition = viewHolder.getAdapterPosition();
+                recentlyDeleted = adapter.getItem(recentlyDeletedPosition);
+                adapter.removeItem(recentlyDeletedPosition);
+
+                Snackbar.make(recyclerView, "Задача удалена", Snackbar.LENGTH_LONG)
+                        .setAction("ОТМЕНИТЬ", v -> {
+                            adapter.restoreItem(recentlyDeleted, recentlyDeletedPosition);
+                            recyclerView.scrollToPosition(recentlyDeletedPosition);
+                            updateStats();
+                        })
+                        .addCallback(new Snackbar.Callback() {
+                            @Override public void onDismissed(Snackbar transientBar, int event) {
+                                if (event != Snackbar.Callback.DISMISS_EVENT_ACTION) {
+                                    dbHelper.deleteTicket(recentlyDeleted);
+                                    updateStats();
+                                }
+                            }
+                        })
+                        .show();
+            }
+        };
+        new ItemTouchHelper(swipeCallback).attachToRecyclerView(recyclerView);
     }
 }
