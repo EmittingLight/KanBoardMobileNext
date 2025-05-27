@@ -65,7 +65,8 @@ public class TicketDatabaseHelper extends SQLiteOpenHelper {
     }
 
     public List<Ticket> getAllTickets() {
-        List<Ticket> ticketList = new ArrayList<>();
+        List<Ticket> overdue = new ArrayList<>();
+        List<Ticket> rest = new ArrayList<>();
         SQLiteDatabase db = this.getReadableDatabase();
         Cursor cursor = db.rawQuery("SELECT * FROM " + TABLE_TICKETS, null);
 
@@ -78,17 +79,39 @@ public class TicketDatabaseHelper extends SQLiteOpenHelper {
                 String dueDate = cursor.getString(cursor.getColumnIndexOrThrow(COLUMN_DUE_DATE));
 
                 Ticket ticket = new Ticket(title, description, status, createdAt, dueDate);
-                ticketList.add(ticket);
+
+                // 📅 Проверка на просрочку
+                if (dueDate != null && !dueDate.isEmpty() && !"Готово".equals(status)) {
+                    try {
+                        java.text.SimpleDateFormat format = new java.text.SimpleDateFormat("dd.MM.yyyy HH:mm", java.util.Locale.getDefault());
+                        java.util.Date due = format.parse(dueDate);
+                        java.util.Date now = new java.util.Date();
+
+                        if (due != null && due.before(now)) {
+                            overdue.add(ticket);
+                            continue;
+                        }
+                    } catch (Exception e) {
+                        Log.e(TAG, "Ошибка парсинга dueDate: " + dueDate, e);
+                    }
+                }
+
+                rest.add(ticket);
             } while (cursor.moveToNext());
         }
-
-        Log.d(TAG, "Загружено задач: " + ticketList.size());
 
         cursor.close();
         db.close();
 
-        return ticketList;
+        // ⬆️ Сначала просроченные, потом остальные
+        List<Ticket> sorted = new ArrayList<>();
+        sorted.addAll(overdue);
+        sorted.addAll(rest);
+
+        Log.d(TAG, "Загружено задач: " + sorted.size());
+        return sorted;
     }
+
 
     public void updateTicket(Ticket ticket) {
         SQLiteDatabase db = this.getWritableDatabase();
