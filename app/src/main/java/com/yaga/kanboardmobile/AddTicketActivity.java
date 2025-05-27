@@ -37,6 +37,8 @@ public class AddTicketActivity extends AppCompatActivity {
         Window window = getWindow();
         window.clearFlags(WindowManager.LayoutParams.FLAG_FULLSCREEN);
         window.addFlags(WindowManager.LayoutParams.FLAG_FORCE_NOT_FULLSCREEN);
+        getWindow().getDecorView().setSystemUiVisibility(0); // 👈 ОБЯЗАТЕЛЬНО!
+
 
         setContentView(R.layout.activity_add_ticket);
 
@@ -113,6 +115,8 @@ public class AddTicketActivity extends AppCompatActivity {
             } else {
                     // 🆕 Создание
                     db.insertTicket(title, description, status, createdAt, dueDate);
+                    TelegramNotifier.send("📝 Создана новая задача: " + title + "\n📅 Срок: " + dueDate);
+
 
                     Intent resultIntent = new Intent();
                     resultIntent.putExtra("title", title);

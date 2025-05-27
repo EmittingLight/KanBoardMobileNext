@@ -6,14 +6,33 @@ android {
     namespace 'com.yaga.kanboardmobile'
     compileSdk 35
 
+    // ✅ Подгружаем TELEGRAM_BOT_TOKEN из local.properties
+    def localProperties = new Properties()
+    def localPropertiesFile = rootProject.file("local.properties")
+    if (localPropertiesFile.exists()) {
+        localProperties.load(new FileInputStream(localPropertiesFile))
+    }
+    def botToken = localProperties.getProperty("TELEGRAM_BOT_TOKEN") ?: ""
+
     defaultConfig {
         applicationId "com.yaga.kanboardmobile"
         minSdk 21
-        targetSdk 35
+        targetSdk 34
         versionCode 1
         versionName "1.0"
-
         testInstrumentationRunner "androidx.test.runner.AndroidJUnitRunner"
+
+        // ✅ Передаём в BuildConfig
+        buildConfigField "String", "TELEGRAM_BOT_TOKEN", "\"${botToken}\""
+    }
+
+    buildFeatures {
+        buildConfig true
+    }
+
+    compileOptions {
+        sourceCompatibility JavaVersion.VERSION_11
+        targetCompatibility JavaVersion.VERSION_11
     }
 
     buildTypes {
@@ -22,14 +41,9 @@ android {
             proguardFiles getDefaultProguardFile('proguard-android-optimize.txt'), 'proguard-rules.pro'
         }
     }
-    compileOptions {
-        sourceCompatibility JavaVersion.VERSION_11
-        targetCompatibility JavaVersion.VERSION_11
-    }
 }
 
 dependencies {
-
     implementation libs.appcompat
     implementation libs.material
     implementation libs.activity
